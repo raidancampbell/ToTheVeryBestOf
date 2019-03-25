@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"google.golang.org/api/option"
+	"google.golang.org/api/youtube/v3"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -17,17 +21,26 @@ func main() {
 	defer resp.Body.Close()
 	err = json.NewDecoder(resp.Body).Decode(r)
 
+	ctx := context.Background()
+	service, _ := youtube.NewService(ctx, option.WithAPIKey(os.Getenv("YOUTUBE_API_KEY")))
+
 	if err == nil {
 		fmt.Printf("Top tracks for: %s\n", artist)
 		for trackNumber, track := range r.Toptracks.Track {
-			fmt.Printf("%d: %s, plays: %s, listeners: %s\n", trackNumber + 1, track.Name, track.Playcount, track.Listeners)
+			fmt.Printf("%d: %s, plays: %s, listeners: %s\n", trackNumber+1, track.Name, track.Playcount, track.Listeners)
 		}
+		var input string
+		fmt.Println("Enter a song number to fetch the video ID for:")
+		_, _ = fmt.Scanln(&input)
+		i, _ := strconv.Atoi(input)
+
+		searchListResponse, _ := searchListByKeyword(service, "snippet", 25, r.Toptracks.Track[i-1].Name, "")
+		fmt.Println(grabFirstResultID(searchListResponse))
+
 	} else {
 		panic(err)
 	}
 }
-
-
 
 func buildURL(artistName string) string {
 	replaced := strings.Replace(artistName, " ", "+", -1)
@@ -45,6 +58,23 @@ func pprintJson(inBytes interface{}) {
 	os.Stdout.Write(formattedBytes)
 }
 
+func grabFirstResultID(response *youtube.SearchListResponse) string {
+	return response.Items[0].Id.VideoId
+}
+
+func searchListByKeyword(service *youtube.Service, part string, maxResults int64, q string, typeArgument string) (*youtube.SearchListResponse, error) {
+	call := service.Search.List(part)
+	if maxResults != 0 {
+		call = call.MaxResults(maxResults)
+	}
+	if q != "" {
+		call = call.Q(q)
+	}
+	if typeArgument != "" {
+		call = call.Type(typeArgument)
+	}
+	return call.Do()
+}
 
 // thanks, https://mholt.github.io/json-to-go/
 type TopTracksResponse struct {
