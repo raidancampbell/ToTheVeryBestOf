@@ -12,8 +12,13 @@ import (
 	"strings"
 )
 
+// requirements:
+// YOUTUBE_API_KEY env variable set to a youtube data v3 api key
+// LASTFM_API_KEY env variable set to a last.fm API key
 func main() {
-	artist := "the crystal method"
+	var artist string
+	fmt.Println("Enter an artist name:")
+	_, _ = fmt.Scanln(&artist)
 	url := buildURL(artist)
 	resp, err := http.Get(url)
 
