@@ -33,37 +33,37 @@ func main() {
 	// call the Last.FM api to get the top tracks for the given artist
 	topTracks := getTopTracks(artist)
 
-	if err == nil {
-		// print out the top tracks
-		fmt.Printf("Top tracks for: %s\n", artist)
-		for trackNumber, track := range topTracks.Toptracks.Track {
-			fmt.Printf("%d: %s, plays: %s, listeners: %s\n", trackNumber+1, track.Name, track.Playcount, track.Listeners)
-		}
-
-		// get user input for which track they want a link for
-		var input string
-		fmt.Println("Enter a song number to fetch the video ID for:")
-		_, _ = fmt.Scanln(&input)
-		i, _ := strconv.Atoi(input)
-		i-- // list was 1-indexed for humans, so we must correct
-
-		// create the search string for the given track
-		track := topTracks.Toptracks.Track[i]
-		// to hopefully be more correct for vague track titles, we include the artist name in the search
-		searchString := fmt.Sprintf("%s %s", track.Artist.Name, track.Name)
-
-		// execute the API call to search. we only really care about the first result
-		searchListResponse, err := searchListByKeyword(service, "snippet", 5, searchString, "")
-
-		if err != nil {
-			panic(err)
-		}
-		// format & print the response
-		fmt.Printf("https://www.youtube.com/watch?v=%s\n", grabFirstResultID(searchListResponse))
-
-	} else {
+	if err != nil {
 		panic(err)
 	}
+
+	// print out the top tracks
+	fmt.Printf("Top tracks for: %s\n", artist)
+	for trackNumber, track := range topTracks.Toptracks.Track {
+		fmt.Printf("%d: %s, plays: %s, listeners: %s\n", trackNumber+1, track.Name, track.Playcount, track.Listeners)
+	}
+
+	// get user input for which track they want a link for
+	var input string
+	fmt.Println("Enter a song number to fetch the video ID for:")
+	_, _ = fmt.Scanln(&input)
+	i, _ := strconv.Atoi(input)
+	i-- // list was 1-indexed for humans, so we must correct
+
+	// create the search string for the given track
+	track := topTracks.Toptracks.Track[i]
+	// to hopefully be more correct for vague track titles, we include the artist name in the search
+	searchString := fmt.Sprintf("%s %s", track.Artist.Name, track.Name)
+
+	// execute the API call to search. we only really care about the first result
+	searchListResponse, err := searchListByKeyword(service, "snippet", 5, searchString, "")
+
+	if err != nil {
+		panic(err)
+	}
+	// format & print the response
+	fmt.Printf("https://www.youtube.com/watch?v=%s\n", grabFirstResultID(searchListResponse))
+
 }
 
 func getTopTracks(artistName string) *TopTracksResponse {
