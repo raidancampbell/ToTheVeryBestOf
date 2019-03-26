@@ -15,36 +15,50 @@ import (
 // requirements:
 // YOUTUBE_API_KEY env variable set to a youtube data v3 api key
 // LASTFM_API_KEY env variable set to a last.fm API key
+// defined up here to clarify the requirements
+var (
+	youtubeKey = os.Getenv("YOUTUBE_API_KEY")
+	lastfmKey  = os.Getenv("LASTFM_API_KEY")
+)
+
 func main() {
+	// initialize the youtube API
+	service, err := youtube.NewService(context.Background(), option.WithAPIKey(youtubeKey))
+
+	// get the user input
 	var artist string
 	fmt.Println("Enter an artist name:")
-	_, _ = fmt.Scanln(&artist)
-	url := buildURL(artist)
-	resp, err := http.Get(url)
+	fmt.Scanln(&artist)
 
-	r := new(TopTracksResponse)
-	defer resp.Body.Close()
-	err = json.NewDecoder(resp.Body).Decode(r)
-
-	ctx := context.Background()
-	service, _ := youtube.NewService(ctx, option.WithAPIKey(os.Getenv("YOUTUBE_API_KEY")))
+	// call the Last.FM api to get the top tracks for the given artist
+	topTracks := getTopTracks(artist)
 
 	if err == nil {
+		// print out the top tracks
 		fmt.Printf("Top tracks for: %s\n", artist)
-		for trackNumber, track := range r.Toptracks.Track {
+		for trackNumber, track := range topTracks.Toptracks.Track {
 			fmt.Printf("%d: %s, plays: %s, listeners: %s\n", trackNumber+1, track.Name, track.Playcount, track.Listeners)
 		}
+
+		// get user input for which track they want a link for
 		var input string
 		fmt.Println("Enter a song number to fetch the video ID for:")
 		_, _ = fmt.Scanln(&input)
 		i, _ := strconv.Atoi(input)
+		i-- // list was 1-indexed for humans, so we must correct
 
-		track := r.Toptracks.Track[i-1]
+		// create the search string for the given track
+		track := topTracks.Toptracks.Track[i]
+		// to hopefully be more correct for vague track titles, we include the artist name in the search
 		searchString := fmt.Sprintf("%s %s", track.Artist.Name, track.Name)
+
+		// execute the API call to search. we only really care about the first result
 		searchListResponse, err := searchListByKeyword(service, "snippet", 5, searchString, "")
+
 		if err != nil {
 			panic(err)
 		}
+		// format & print the response
 		fmt.Println("https://www.youtube.com/watch?v=%s", grabFirstResultID(searchListResponse))
 
 	} else {
@@ -52,20 +66,26 @@ func main() {
 	}
 }
 
+func getTopTracks(artistName string) *TopTracksResponse {
+	url := buildURL(artistName)
+	resp, err := http.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	r := new(TopTracksResponse)
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(r)
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
+
 func buildURL(artistName string) string {
 	replaced := strings.Replace(artistName, " ", "+", -1)
 	hostname := "ws.audioscrobbler.com"
 	function := "artist.gettoptracks"
-	return fmt.Sprintf("http://%s/2.0/?method=%s&artist=%s&api_key=%s&format=json", hostname, function, replaced, getAPIKey())
-}
-
-func getAPIKey() string {
-	return os.Getenv("LASTFM_API_KEY")
-}
-
-func pprintJson(inBytes interface{}) {
-	formattedBytes, _ := json.MarshalIndent(inBytes, "", "  ")
-	os.Stdout.Write(formattedBytes)
+	return fmt.Sprintf("http://%s/2.0/?method=%s&artist=%s&api_key=%s&format=json", hostname, function, replaced, lastfmKey)
 }
 
 func grabFirstResultID(response *youtube.SearchListResponse) string {
