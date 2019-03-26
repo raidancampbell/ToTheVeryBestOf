@@ -12,7 +12,7 @@
  - Youtube Data API call to make a search costs 100 units, and the free plan is capped at 10,000 units per day.  This gives a maximum of 100 searches per day which is too restrictive at 1 search per track
  - Alternatives for streaming music are bleak:
     - Grooveshark, the backend for the original ToTheBestOf.com, no longer exists
-    - Spotify API doesn't allow more than 30 second previews
+    - Spotify API doesn't allow more than 30 second previews unless the user is logged in
     - Deezer API is limited to 30 second previews
     - Napster API is limited to 30 second previews
     - Google music has no public API
