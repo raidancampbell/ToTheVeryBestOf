@@ -59,7 +59,7 @@ func main() {
 			panic(err)
 		}
 		// format & print the response
-		fmt.Println("https://www.youtube.com/watch?v=%s", grabFirstResultID(searchListResponse))
+		fmt.Printf("https://www.youtube.com/watch?v=%s\n", grabFirstResultID(searchListResponse))
 
 	} else {
 		panic(err)
