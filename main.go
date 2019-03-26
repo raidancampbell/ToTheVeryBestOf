@@ -34,8 +34,13 @@ func main() {
 		_, _ = fmt.Scanln(&input)
 		i, _ := strconv.Atoi(input)
 
-		searchListResponse, _ := searchListByKeyword(service, "snippet", 25, r.Toptracks.Track[i-1].Name, "")
-		fmt.Println(grabFirstResultID(searchListResponse))
+		track := r.Toptracks.Track[i-1]
+		searchString := fmt.Sprintf("%s %s", track.Artist.Name, track.Name)
+		searchListResponse, err := searchListByKeyword(service, "snippet", 5, searchString, "")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("https://www.youtube.com/watch?v=%s", grabFirstResultID(searchListResponse))
 
 	} else {
 		panic(err)
