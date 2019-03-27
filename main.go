@@ -8,7 +8,6 @@ import (
 	"google.golang.org/api/youtube/v3"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -43,26 +42,33 @@ func main() {
 		fmt.Printf("%d: %s, plays: %s, listeners: %s\n", trackNumber+1, track.Name, track.Playcount, track.Listeners)
 	}
 
-	// get user input for which track they want a link for
-	var input string
-	fmt.Println("Enter a song number to fetch the video ID for:")
-	_, _ = fmt.Scanln(&input)
-	i, _ := strconv.Atoi(input)
-	i-- // list was 1-indexed for humans, so we must correct
+	var ids []string
 
-	// create the search string for the given track
-	track := topTracks.Toptracks.Track[i]
-	// to hopefully be more correct for vague track titles, we include the artist name in the search
-	searchString := fmt.Sprintf("%s %s", track.Artist.Name, track.Name)
+	// form an anonymous playlist of the top 5 results
+	for i := 0; i < 5; i++ {
+		// if last.fm provided less than 5 results, handle accordingly
+		if i >= len(topTracks.Toptracks.Track) {
+			break
+		}
 
-	// execute the API call to search. we only really care about the first result
-	searchListResponse, err := searchListByKeyword(service, "snippet", 5, searchString, "")
+		// create the search string for the given track
+		track := topTracks.Toptracks.Track[i]
+		// to hopefully be more correct for vague track titles, we include the artist name in the search
+		searchString := fmt.Sprintf("%s %s", track.Artist.Name, track.Name)
 
-	if err != nil {
-		panic(err)
+		// youtube API call to return 5 search results
+		response, err := searchListByKeyword(service, "snippet", 5, searchString, "")
+		if err != nil {
+			continue
+		}
+		// get the first result and add it to the top track videos list
+		ids = append(ids, grabFirstResultID(response))
 	}
+
+	// join the video IDs
+	formattedIds := strings.Join(ids, ",")
 	// format & print the response
-	fmt.Printf("https://www.youtube.com/watch?v=%s\n", grabFirstResultID(searchListResponse))
+	fmt.Printf("https://www.youtube.com/watch_videos?video_ids=%s\n", formattedIds)
 
 }
 
