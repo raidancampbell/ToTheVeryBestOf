@@ -62,7 +62,7 @@ func main() {
 			continue
 		}
 		// get the first result and add it to the top track videos list
-		ids = append(ids, grabFirstResultID(response))
+		ids = append(ids, response.Items[0].Id.VideoId)
 	}
 
 	// join the video IDs
@@ -92,10 +92,6 @@ func buildURL(artistName string) string {
 	hostname := "ws.audioscrobbler.com"
 	function := "artist.gettoptracks"
 	return fmt.Sprintf("http://%s/2.0/?method=%s&artist=%s&api_key=%s&format=json", hostname, function, replaced, lastfmKey)
-}
-
-func grabFirstResultID(response *youtube.SearchListResponse) string {
-	return response.Items[0].Id.VideoId
 }
 
 func searchListByKeyword(service *youtube.Service, part string, maxResults int64, q string, typeArgument string) (*youtube.SearchListResponse, error) {
