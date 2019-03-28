@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -28,9 +29,10 @@ func main() {
 	}
 
 	// get the user input
-	var artist string
 	fmt.Println("Enter an artist name:")
-	fmt.Scanln(&artist)
+	buffer := bufio.NewReader(os.Stdin)
+	artist, _ := buffer.ReadString('\n')
+	artist = strings.TrimSpace(artist)
 
 	// call the Last.FM api to get the top tracks for the given artist
 	topTracks := getTopTracks(artist)
