@@ -23,6 +23,9 @@ var (
 func main() {
 	// initialize the youtube API
 	service, err := youtube.NewService(context.Background(), option.WithAPIKey(youtubeKey))
+	if err != nil {
+		panic(err)
+	}
 
 	// get the user input
 	var artist string
@@ -31,10 +34,6 @@ func main() {
 
 	// call the Last.FM api to get the top tracks for the given artist
 	topTracks := getTopTracks(artist)
-
-	if err != nil {
-		panic(err)
-	}
 
 	// print out the top tracks
 	fmt.Printf("Top tracks for: %s\n", artist)
