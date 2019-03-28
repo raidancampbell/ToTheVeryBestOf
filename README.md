@@ -2,6 +2,30 @@
 
 ### A tool to discover the very best tracks an artist has to offer
 
+## Sample Usage:
+
+```
+   user@host: go build main.go
+   
+   user@host: ./main
+   
+   Enter an artist name:
+   barbra streisand
+   
+   Top tracks for: barbra streisand
+   1: Woman in Love, plays: 716433, listeners: 171338
+   2: The Way We Were, plays: 288768, listeners: 79421
+   3: Memory, plays: 223076, listeners: 62534
+   4: Don't Rain on My Parade, plays: 233756, listeners: 58988
+   5: Guilty, plays: 150898, listeners: 47704
+   6: People, plays: 123115, listeners: 37827
+   7: Somewhere, plays: 76138, listeners: 26663
+   8: Evergreen, plays: 79255, listeners: 26498
+   9: Send in the Clowns, plays: 72998, listeners: 26094
+   10: Papa, Can You Hear Me?, plays: 83145, listeners: 24285
+   https://www.youtube.com/watch_videos?video_ids=a8DE5U6npkQ,uBPQT2Ia8fU,MWoQW-b6Ph8,-Yfh_CpA9Sk,nVyeNZCENZA
+```
+
 ## Development Requirements
 
  - A Last.FM API key, which can be created [here](https://www.last.fm/api/account/create), set with the environment variable `LASTFM_API_KEY`
