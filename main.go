@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
 	"net/http"
@@ -21,30 +21,36 @@ var (
 	lastfmKey  = os.Getenv("LASTFM_API_KEY")
 )
 
-func main() {
+var yt *youtube.Service
+
+func init() {
 	// initialize the youtube API
-	service, err := youtube.NewService(context.Background(), option.WithAPIKey(youtubeKey))
+	var err error
+	yt, err = youtube.NewService(context.Background(), option.WithAPIKey(youtubeKey))
 	if err != nil {
 		panic(err)
 	}
+}
 
-	// get the user input
-	fmt.Println("Enter an artist name:")
-	buffer := bufio.NewReader(os.Stdin)
-	artist, _ := buffer.ReadString('\n')
-	artist = strings.TrimSpace(artist)
+func main() {
+	r := gin.Default()
+	r.GET("/", handleLanding)
+	r.GET("/artist", handleArtistRequest)
+	r.Run("0.0.0.0:9071")
+}
+
+func handleLanding(c *gin.Context) {
+	c.Writer.WriteHeader(http.StatusOK)
+	c.Writer.Write([]byte(landing))
+}
+
+func handleArtistRequest(c *gin.Context) {
+	artistName := c.Query("Artist")
 
 	// call the Last.FM api to get the top tracks for the given artist
-	topTracks := getTopTracks(artist)
-
-	// print out the top tracks
-	fmt.Printf("Top tracks for: %s\n", artist)
-	for trackNumber, track := range topTracks.Toptracks.Track {
-		fmt.Printf("%d: %s, plays: %s, listeners: %s\n", trackNumber+1, track.Name, track.Playcount, track.Listeners)
-	}
+	topTracks := getTopTracks(artistName)
 
 	var ids []string
-
 	// form an anonymous playlist of the top 5 results
 	for i := 0; i < 5; i++ {
 		// if last.fm provided less than 5 results, handle accordingly
@@ -58,7 +64,7 @@ func main() {
 		searchString := fmt.Sprintf("%s %s", track.Artist.Name, track.Name)
 
 		// youtube API call to return 5 search results
-		response, err := searchListByKeyword(service, "snippet", 5, searchString, "")
+		response, err := searchListByKeyword(yt, "snippet", 5, searchString)
 		if err != nil {
 			continue
 		}
@@ -66,15 +72,24 @@ func main() {
 		ids = append(ids, response.Items[0].Id.VideoId)
 	}
 
-	// join the video IDs
-	formattedIds := strings.Join(ids, ",")
-	// format & print the response
-	fmt.Printf("https://www.youtube.com/watch_videos?video_ids=%s\n", formattedIds)
-
+	// anonymous playlists don't work in embedded players.  looks like we need to create a playlist.
+	// update: creating playlists requires way more attention than I'm willing to give this project, plus it was hacky.
+	// service accounts won't work, and getting this application verified sounds annoying.
+	// SO. plan C: each of the videos is embedded on its own, with the first set to autoplay.
+	c.Writer.WriteHeader(http.StatusOK)
+	for i, videoID := range ids {
+		autoplay := 0
+		if i == 0 {
+			autoplay = 1
+		}
+		embed := fmt.Sprintf(`<iframe id="ytplayer" type="text/html" width="640" height="360" src="https://www.youtube.com/embed/%s?autoplay=%d"frameborder="0"></iframe>`, videoID, autoplay)
+		c.Writer.WriteString(embed)
+	}
 }
 
 func getTopTracks(artistName string) *TopTracksResponse {
-	url := buildURL(artistName)
+	artistName = strings.Replace(artistName, " ", "+", -1)
+	url := fmt.Sprintf("http://ws.audioscrobbler.com/2.0/?method=artist.gettoptracks&artist=%s&api_key=%s&format=json", artistName, lastfmKey)
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(err)
@@ -88,24 +103,15 @@ func getTopTracks(artistName string) *TopTracksResponse {
 	return r
 }
 
-func buildURL(artistName string) string {
-	replaced := strings.Replace(artistName, " ", "+", -1)
-	hostname := "ws.audioscrobbler.com"
-	function := "artist.gettoptracks"
-	return fmt.Sprintf("http://%s/2.0/?method=%s&artist=%s&api_key=%s&format=json", hostname, function, replaced, lastfmKey)
-}
-
-func searchListByKeyword(service *youtube.Service, part string, maxResults int64, q string, typeArgument string) (*youtube.SearchListResponse, error) {
-	call := service.Search.List(part)
+// searchListByKeyword executes a youtube v3 search list operation (https://developers.google.com/youtube/v3/docs/search/list)
+// this costs 100 units.  My account has 10,000 units per day.  So it's limited to 20 artist searches returning the top 5 songs.
+// TODO: keep embedded iframe behind a button so that the search operation is only triggered if the user desires
+func searchListByKeyword(service *youtube.Service, part string, maxResults int64, query string) (*youtube.SearchListResponse, error) {
+	call := service.Search.List([]string{part})
 	if maxResults != 0 {
 		call = call.MaxResults(maxResults)
 	}
-	if q != "" {
-		call = call.Q(q)
-	}
-	if typeArgument != "" {
-		call = call.Type(typeArgument)
-	}
+	call = call.Q(query)
 	return call.Do()
 }
 
