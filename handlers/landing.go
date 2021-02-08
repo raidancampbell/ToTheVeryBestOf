@@ -9,12 +9,11 @@ const landing = `<!DOCTYPE html>
 <html lang="en">
 
 <head>
-<title>The Very Best</title>
+<title>the best tracks that an artist has to offer</title>
 </head>
 
 <body>
-<h1>The Very Best Of</h1>
-<h2>Listen to the best that an artist has to offer</h2>
+<h1>Listen to the best tracks that an artist has to offer</h1>
 
 
 <form action="/artist" method="GET">
