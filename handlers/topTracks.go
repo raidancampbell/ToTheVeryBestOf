@@ -42,7 +42,8 @@ func (t *topTracks) HandleArtistRequest(c *gin.Context) {
 		return
 	}
 
-	var ids []string
+	var embeds []string
+	c.Writer.WriteHeader(http.StatusOK)
 	for i := 0; i < 5 && i <= len(lastFMResp.Toptracks.Track); i++ {
 		// create the search string for the given track
 		track := lastFMResp.Toptracks.Track[i]
@@ -54,23 +55,21 @@ func (t *topTracks) HandleArtistRequest(c *gin.Context) {
 		if err != nil {
 			continue
 		}
-		// get the first result and add it to the top track videos list
-		ids = append(ids, videoID)
-	}
 
-	// anonymous playlists don't work in embedded players.  looks like we need to create a playlist.
-	// update: creating playlists requires way more attention than I'm willing to give this project, plus it was hacky.
-	// service accounts won't work, and getting this application verified sounds annoying.
-	// SO. plan C: each of the videos is embedded on its own, with the first set to autoplay.
-	c.Writer.WriteHeader(http.StatusOK)
-	for i, videoID := range ids {
+		// anonymous playlists don't work in embedded players.  looks like we need to create a playlist.
+		// update: creating playlists requires way more attention than I'm willing to give this project, plus it was hacky.
+		// service accounts won't work, and getting this application verified sounds annoying.
+		// SO. plan C: each of the videos is embedded on its own, with the first set to autoplay.
+
+		// get the first result and add it to the top track videos list
 		autoplay := 0
 		if i == 0 {
 			autoplay = 1
 		}
 		embed := fmt.Sprintf(`<iframe id="ytplayer" type="text/html" width="640" height="360" src="https://www.youtube.com/embed/%s?autoplay=%d"frameborder="0"></iframe>`, videoID, autoplay)
-		_, _ = c.Writer.WriteString(embed)
+		embeds = append(embeds, embed, "<br>", fmt.Sprintf(`"%s" by "%s"`, track.Name, track.Artist.Name), "<br><br>")
 	}
+	_, _ = c.Writer.WriteString(strings.TrimSuffix(strings.Join(embeds, ""), "<br><br>"))
 }
 
 //getTopTracks returns Last.FM's top tracks for the given artist.
