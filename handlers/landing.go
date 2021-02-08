@@ -1,4 +1,9 @@
-package main
+package handlers
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
 
 const landing = `<!DOCTYPE html>
 <html lang="en">
@@ -20,3 +25,9 @@ Artist:
 </form>
 
 </body>`
+
+func Landing(c *gin.Context) {
+	c.Writer.WriteHeader(http.StatusOK)
+	c.Writer.Write([]byte(landing))
+}
+
